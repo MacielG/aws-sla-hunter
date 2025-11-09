@@ -1,0 +1,86 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+env.bak/
+venv.bak/
+
+# IDE & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+*.vim
+
+# OS
+.DS_Store
+Thumbs.db
+.AppleDouble
+.LSOverride
+*.lnk
+
+# AWS credentials - NEVER commit these
+.aws/
+.aws/credentials
+.aws/config
+*.pem
+*.key
+*.pub
+
+# Test coverage & reports
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Distribution & Build
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Python
+*.pyc
+*.pyo
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Environment variables - NEVER commit these
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*~
+
+# IDE specific
+.DS_Store
+.project
+.pydevproject
+.settings
+
+# OS specific
+desktop.ini
+
+# Local test outputs
+test_output.txt
+local_test_results.json
+
+# Screenshots (auto-generated, don't commit)
+screenshot.png
+
+# Misc
+*.log
+*.pid
