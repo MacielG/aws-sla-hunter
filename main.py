@@ -16,6 +16,14 @@ from rich.panel import Panel
 from rich.text import Text
 from rich import box
 
+# Import authentication handler
+try:
+    from auth_handler import AWSAuthHandler, AuthMethod
+except ImportError:
+    # Fallback if auth_handler not available
+    AWSAuthHandler = None
+    AuthMethod = None
+
 # Fix for Windows encoding issues with emojis
 if sys.platform == "win32":
     os.environ["PYTHONIOENCODING"] = "utf-8"
@@ -25,36 +33,75 @@ else:
 
 
 def get_credentials() -> bool:
-    """Verify AWS credentials are available"""
+    """Verify AWS credentials are available and display authentication info"""
     try:
         sts = boto3.client("sts", region_name="us-east-1")
-        sts.get_caller_identity()
+        identity = sts.get_caller_identity()
+
+        # Try to detect authentication method if handler available
+        if AWSAuthHandler:
+            auth_handler = AWSAuthHandler()
+            _, method = auth_handler.detect_credentials()
+            if method:
+                console.print(f"[dim]({method})[/dim]", end=" ")
+
         return True
+
     except (NoCredentialsError, PartialCredentialsError):
         console.print(
-            "[red]❌ ERROR: AWS credentials not found.[/red]\n"
+            "\n[red]❌ ERROR: AWS credentials not found.[/red]\n"
             "Please configure AWS credentials using one of these methods:\n"
-            "  • AWS CLI: aws configure\n"
-            "  • Environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY\n"
-            "  • IAM Role (EC2/ECS/Lambda)\n"
-            "See: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html"
+            "  • [bold]AWS SSO:[/bold] aws configure sso [recommended]\n"
+            "  • [bold]AWS CLI:[/bold] aws configure\n"
+            "  • [bold]Environment variables:[/bold] AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY\n"
+            "  • [bold]IAM Role:[/bold] EC2/ECS/Lambda\n\n"
+            "[cyan]Need help?[/cyan] https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html\n"
+            "[cyan]Or run:[/cyan] python main.py --setup"
         )
         return False
+
     except ClientError as e:
         if e.response["Error"]["Code"] == "AccessDenied":
             console.print(
-                "[red]❌ ERROR: Access denied.[/red]\n"
+                "\n[red]❌ ERROR: Access denied.[/red]\n"
                 "Your IAM user/role needs these permissions:\n"
                 "  • health:DescribeEvents\n"
                 "  • health:DescribeEventDetails\n"
                 "See: https://docs.aws.amazon.com/health/latest/ug/security_iam_service-with-iam.html"
             )
         else:
-            console.print(f"[red]❌ AWS Error: {e}[/red]")
+            console.print(f"\n[red]❌ AWS Error: {e}[/red]")
         return False
+
     except Exception as e:
-        console.print(f"[red]❌ Unexpected error: {e}[/red]")
+        console.print(f"\n[red]❌ Unexpected error: {e}[/red]")
         return False
+
+
+def display_free_tier_guidance() -> None:
+    """Display guidance for free tier AWS customers"""
+    guidance_text = (
+        "[bold cyan]📋 You're on a Free/Basic Support Plan[/bold cyan]\n\n"
+        "[bold]Good news:[/bold] You have SLA credit rights!\n"
+        "AWS provides SLA credits for unplanned downtime, even on free tier.\n\n"
+        "[bold yellow]Your Options:[/bold yellow]\n\n"
+        "[bold]Option 1: Monitor Manually (Free)[/bold]\n"
+        "  1. Go to AWS Console → Health Dashboard\n"
+        "  2. Check for incident reports in your regions\n"
+        "  3. If you find issues, open AWS Support ticket\n"
+        "  4. Claim SLA credits in the ticket\n"
+        "  📄 Guide: https://aws.amazon.com/premiumsupport/knowledge-center/\n\n"
+        "[bold]Option 2: Upgrade to Business Support (~$100/month)[/bold]\n"
+        "  ✓ Unlock this automated SLA detection tool\n"
+        "  ✓ Get 24/7 support for production issues\n"
+        "  ✓ Usually pays for itself with recovered SLA credits\n"
+        "  🚀 Upgrade: https://console.aws.amazon.com/support/\n\n"
+        "[bold]Option 3: Use awscostguardian.com[/bold]\n"
+        "  • Automates SLA detection across your account\n"
+        "  • Works with any support level\n"
+        "  • Free audit: https://awscostguardian.com"
+    )
+    console.print(Panel(guidance_text, border_style="yellow", padding=(1, 2)))
 
 
 def fetch_health_events() -> List[Dict[str, Any]]:
@@ -96,11 +143,8 @@ def fetch_health_events() -> List[Dict[str, Any]]:
 
     except ClientError as e:
         if e.response["Error"]["Code"] == "SubscriptionRequiredException":
-            console.print(
-                "[yellow]⚠️  AWS Health API requires Business or Enterprise Support.[/yellow]\n"
-                "This tool needs AWS Health access to detect SLA-eligible events.\n"
-                "Upgrade your support plan: https://aws.amazon.com/premiumsupport/"
-            )
+            console.print()
+            display_free_tier_guidance()
         else:
             console.print(f"[red]❌ Error fetching events: {e}[/red]")
         return []
@@ -242,6 +286,16 @@ def display_cta() -> None:
 
 def main() -> int:
     """Main entry point"""
+    # Handle --setup flag for authentication wizard
+    if "--setup" in sys.argv:
+        if AWSAuthHandler:
+            auth_handler = AWSAuthHandler()
+            success = auth_handler.setup_wizard()
+            return 0 if success else 1
+        else:
+            console.print("[red]Error: auth_handler module not available[/red]")
+            return 1
+
     console.print(
         Panel(
             "[bold cyan]🔍 AWS SLA Hunter[/bold cyan]\n"
@@ -255,6 +309,7 @@ def main() -> int:
     # Step 1: Verify credentials
     console.print("[cyan]→[/cyan] Verifying AWS credentials...", end=" ")
     if not get_credentials():
+        console.print()
         return 1
     console.print("[green]✓[/green]")
     console.print()

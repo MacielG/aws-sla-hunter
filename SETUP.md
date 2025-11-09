@@ -1,63 +1,60 @@
-# AWS SLA Hunter - Setup Guide
+# Setup Guide
 
-## Quick Start
+## Quick Start (60 seconds)
 
-### 1. Install Dependencies
+```bash
+pip install -r requirements.txt
+python main.py --setup
+python main.py
+```
+
+## Step-by-Step Installation
+
+### 1. Clone Repository
+```bash
+git clone https://github.com/MacielG/aws-sla-hunter.git
+cd aws-sla-hunter
+```
+
+### 2. Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Configure AWS Credentials
-```bash
-# Option A: Using AWS CLI
-aws configure
+### 3. Configure AWS Credentials
 
-# Option B: Using environment variables
+**Option A: Interactive Setup (Recommended)**
+```bash
+python main.py --setup
+```
+This wizard:
+- Auto-detects existing credentials
+- Offers setup for 4 auth methods
+- Verifies credentials after setup
+
+**Option B: Manual Setup**
+```bash
+aws configure
+```
+
+**Option C: Environment Variables**
+```bash
 export AWS_ACCESS_KEY_ID=your_key
 export AWS_SECRET_ACCESS_KEY=your_secret
 export AWS_DEFAULT_REGION=us-east-1
 ```
 
-### 3. Run the Hunter
+### 4. Run
 ```bash
 python main.py
 ```
 
-### 4. (Optional) Generate Screenshot
-```bash
-python test_hunter.py --screenshot
-```
+## System Requirements
 
-### 5. (Optional) Run Tests
-```bash
-python test_hunter.py
-```
-
-## Requirements
-
-### AWS Account
-- Business or Enterprise support plan (required by AWS for Health API access)
-- IAM credentials with these permissions:
-  ```json
-  {
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Effect": "Allow",
-        "Action": [
-          "health:DescribeEvents",
-          "health:DescribeEventDetails"
-        ],
-        "Resource": "*"
-      }
-    ]
-  }
-  ```
-
-### System Requirements
 - Python 3.8 or higher
-- pip package manager
-- Internet connection (to reach AWS API)
+- AWS account with credentials
+- Internet connection
+- **Business or Enterprise Support plan** (for AWS Health API)
 
 ## Troubleshooting
 
@@ -68,30 +65,69 @@ pip install -r requirements.txt
 
 ### "NoCredentialsError: Unable to locate credentials"
 ```bash
+python main.py --setup
+# or
 aws configure
-# or set environment variables
 ```
 
-### "SubscriptionRequiredException: AWS Health API requires Business or Enterprise Support"
-- Upgrade your AWS support plan at: https://aws.amazon.com/premiumsupport/
-- Or contact AWS support to enable Health API
+### "SubscriptionRequiredException"
+This means you're on free/basic support. See [FREE_TIER_GUIDE.md](FREE_TIER_GUIDE.md).
 
-### "AccessDenied: User is not authorized to perform: health:DescribeEvents"
-- Ask your AWS administrator to add the IAM permissions listed above
-- See: https://docs.aws.amazon.com/health/latest/ug/security_iam_service-with-iam.html
+### "AccessDenied: health:DescribeEvents"
+Your IAM user needs these permissions:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "health:DescribeEvents",
+        "health:DescribeEventDetails"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+### AWS CLI not installed
+
+For interactive setup, install AWS CLI:
+
+**macOS:**
+```bash
+brew install awscli
+```
+
+**Windows:**
+```
+Download: https://awscli.amazonaws.com/AWSCLIV2.msi
+Run the installer
+```
+
+**Linux:**
+```bash
+curl "https://awscli.amazonaws.com/awscliv2.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+```
+
+## Optional: Run Tests
+
+```bash
+python test_hunter.py
+```
 
 ## Next Steps
 
-1. **Run aws-sla-hunter** to find events
-2. **Review results** in the table output
-3. **Claim credits** through AWS support (manual) or awscostguardian.com (automated)
+1. Run `python main.py` to find SLA events
+2. If found, visit [awscostguardian.com](https://awscostguardian.com) to automate claiming
+3. If errors, check [FREE_TIER_GUIDE.md](FREE_TIER_GUIDE.md) or [AUTHENTICATION.md](AUTHENTICATION.md)
 
-## Support
+## Need More Help?
 
-- GitHub Issues: https://github.com/yourusername/aws-sla-hunter/issues
-- AWS Health Docs: https://docs.aws.amazon.com/health/
-- AWS SLA Info: https://aws.amazon.com/service-level-agreement/
-
-## More Information
-
-See README.md for full documentation.
+- **Authentication:** See [AUTHENTICATION.md](AUTHENTICATION.md)
+- **Free Tier:** See [FREE_TIER_GUIDE.md](FREE_TIER_GUIDE.md)
+- **General:** See [README.md](README.md)
+- **Contributing:** See [CONTRIBUTING.md](CONTRIBUTING.md)
